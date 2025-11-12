@@ -46,7 +46,7 @@ pip install yt-dlp
 pip install sv-ttk
 ```
 
-**B. Install FFmpeg**
+**B. Install FFmpeg** (optional)
 
 `yt-dlp` needs `ffmpeg.exe` to combine video and audio.
 
