@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Video Downloader</title>
+    <!-- Embedded CSS for simplicity -->
+    <style>
+        :root {
+            --bg-color: #f0f0f0;
+            --fg-color: #1a1a1a;
+            --input-bg: #ffffff;
+            --border-color: #ccc;
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --list-hover: #e9e9e9;
+            --selected-bg: #007bff;
+            --selected-fg: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--fg-color);
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode {
+            --bg-color: #1a1a1a;
+            --fg-color: #f0f0f0;
+            --input-bg: #2a2a2a;
+            --border-color: #555;
+            --primary-color: #007bff;
+            --primary-hover: #009fff;
+            --list-hover: #2c2c2c;
+            --selected-bg: #007bff;
+            --selected-fg: #ffffff;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        /* --- Header & Theme Toggle --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        
+        .theme-switch-wrapper { display: flex; align-items: center; }
+        .theme-switch { display: inline-block; height: 24px; position: relative; width: 44px; }
+        .theme-switch input { display: none; }
+        .slider { background-color: #ccc; bottom: 0; cursor: pointer; left: 0; position: absolute; right: 0; top: 0; transition: .4s; border-radius: 34px; }
+        .slider:before { background-color: #fff; bottom: 4px; content: ""; height: 16px; left: 4px; position: absolute; transition: .4s; width: 16px; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* --- URL Input --- */
+        .url-group { display: flex; gap: 10px; margin: 20px 0; }
+        #urlInput {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: var(--input-bg);
+            color: var(--fg-color);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--primary-color);
+            color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover:not(:disabled) { background-color: var(--primary-hover); }
+        button:disabled { background-color: #aaa; cursor: not-allowed; }
+
+        /* --- Format List --- */
+        #formatList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+        #formatList li {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            font-family: "Courier New", Courier, monospace;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        #formatList li:last-child { border-bottom: none; }
+        #formatList li:hover { background-color: var(--list-hover); }
+        #formatList li.selected {
+            background-color: var(--selected-bg);
+            color: var(--selected-fg);
+            font-weight: bold;
+        }
+        #formatList .format-res { min-width: 100px; }
+        #formatList .format-ext { min-width: 60px; }
+        #formatList .format-size { min-width: 100px; text-align: right; }
+        #formatList .format-note { flex-grow: 1; text-align: right; padding-left: 20px; color: #888; }
+        #formatList li.selected .format-note { color: #f0f0f0; }
+
+
+        /* --- Status & Download Button --- */
+        #status {
+            margin-top: 20px;
+            font-size: 14px;
+            text-align: center;
+            min-height: 20px;
+        }
+        .loader {
+            display: none;
+            margin: 10px auto;
+            border: 4px solid var(--list-hover);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #downloadButton { width: 100%; margin-top: 10px; padding: 12px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>Web Video Downloader</h2>
+            <div class="theme-switch-wrapper">
+                <label class="theme-switch" for="themeToggle">
+                    <input type="checkbox" id="themeToggle" />
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="url-group">
+            <input type="text" id="urlInput" placeholder="Paste YouTube URL here...">
+            <button id="fetchButton">Fetch Formats</button>
+        </div>
+
+        <h3 id="videoTitle"></h3>
+        <ul id="formatList">
+            <!-- Formats will be populated by JavaScript -->
+        </ul>
+
+        <button id="downloadButton" disabled>Download Selected</button>
+
+        <div id="status"></div>
+        <div class="loader" id="loader"></div>
+    </div>
+
+    <!-- Embedded JavaScript -->
+    <script>
+        // --- DOM Elements ---
+        const urlInput = document.getElementById('urlInput');
+        const fetchButton = document.getElementById('fetchButton');
+        const formatList = document.getElementById('formatList');
+        const downloadButton = document.getElementById('downloadButton');
+        const statusDiv = document.getElementById('status');
+        const loader = document.getElementById('loader');
+        const videoTitle = document.getElementById('videoTitle');
+        const themeToggle = document.getElementById('themeToggle');
+
+        // --- State ---
+        let selectedFormatId = null;
+        let currentUrl = null;
+        let currentTitle = 'video';
+
+        // --- API Base URL ---
+        const API_URL = window.location.origin;
+
+        // --- Functions ---
+        function setStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.style.color = isError ? '#ff4d4d' : 'inherit';
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                loader.style.display = 'block';
+                fetchButton.disabled = true;
+                downloadButton.disabled = true;
+            } else {
+                loader.style.display = 'none';
+                fetchButton.disabled = false;
+                if (selectedFormatId) {
+                    downloadButton.disabled = false;
+                }
+            }
+        }
+
+        async function fetchFormats() {
+            const url = urlInput.value;
+            if (!url) {
+                setStatus('Please paste a URL first.', true);
+                return;
+            }
+            
+            currentUrl = url;
+            selectedFormatId = null;
+            formatList.innerHTML = '';
+            videoTitle.textContent = '';
+            setStatus('Fetching formats...');
+            setLoading(true);
+
+            try {
+                const response = await fetch(`${API_URL}/api/fetch_formats`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Failed to fetch formats');
+                }
+
+                const data = await response.json();
+                
+                videoTitle.textContent = data.title;
+                currentTitle = data.title; // Store title for download
+                if (data.formats.length === 0) {
+                     setStatus('No video formats found.', true);
+                     return;
+                }
+
+                data.formats.forEach(f => {
+                    const li = document.createElement('li');
+                    li.dataset.formatId = f.id;
+                    li.innerHTML = `
+                        <span class="format-res">${f.res}</span>
+                        <span class="format-ext">${f.ext}</span>
+                        <span class="format-size">${f.size_str}</span>
+                        <span class="format-note">${f.note}</span>
+                    `;
+                    
+                    li.addEventListener('click', () => {
+                        document.querySelectorAll('#formatList li.selected').forEach(el => {
+                            el.classList.remove('selected');
+                        });
+                        li.classList.add('selected');
+                        selectedFormatId = f.id;
+                        downloadButton.disabled = false;
+                    });
+                    
+                    formatList.appendChild(li);
+                });
+                setStatus('Select a format to download.');
+
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, true);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        async function downloadVideo() {
+            if (!selectedFormatId || !currentUrl) {
+                setStatus('Please select a format first.', true);
+                return;
+            }
+            
+            setStatus('Preparing download stream...');
+            setLoading(true);
+            
+            // Build the URL with query parameters
+            const downloadUrl = new URL(`${API_URL}/download`);
+            downloadUrl.searchParams.append('url', currentUrl);
+            downloadUrl.searchParams.append('format_id', selectedFormatId);
+            downloadUrl.searchParams.append('title', currentTitle);
+            
+            // Trigger the download by setting the window location
+            window.location.href = downloadUrl.href;
+            
+            // Reset the UI after a short delay
+            setTimeout(() => {
+                setLoading(false);
+                setStatus('Download has started.');
+            }, 3000);
+        }
+        
+        function toggleTheme() {
+            if (themeToggle.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        
+        // --- Event Listeners ---
+        fetchButton.addEventListener('click', fetchFormats);
+        downloadButton.addEventListener('click', downloadVideo);
+        themeToggle.addEventListener('click', toggleTheme);
+        
+        // --- Initialization ---
+        if (localStorage.getItem('theme') === 'dark') {
+            themeToggle.checked = true;
+            toggleTheme();
+        }
+
+    </script>
+</body>
+</html>
