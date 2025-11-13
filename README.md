@@ -60,9 +60,9 @@ pip install sv-ttk
 Once all requirements are installed, you can run the application from your terminal:
 
 ```bash
-python YT_downloder.py
+python local_cli.py
 ```
-
+## ignore other files, those are for packaging the app into an executable in server soon 
 -----
 
 ## 📄 License
