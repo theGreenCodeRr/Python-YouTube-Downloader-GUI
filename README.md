@@ -1,70 +1,37 @@
-# Python YouTube Downloader GUI
+# 🎥 Python YouTube Downloader
 
-A simple, modern GUI application for downloading YouTube videos with resolution selection and dark mode. Built with Python, `tkinter`, and `yt-dlp`.
-
-
-## 📋 About The Project
-
-This is a user-friendly desktop app that provides a clean interface for downloading YouTube videos. It uses `yt-dlp` as the backend to fetch video formats and manage the download process, and `tkinter` with the `sv-ttk` theme for the modern user interface.
-
-The app automatically handles merging separate video and audio files (required for 1080p+ videos) as long as **FFmpeg** is present.
+A lightweight, modern desktop app for downloading YouTube videos. Built with Python, `tkinter`, and `yt-dlp`. 
 
 ## ✨ Features
 
-  * **Fetch Formats:** Paste any YouTube video URL and fetch all available resolutions.
-  * **Resolution Selection:** Choose your preferred format from a clean list.
-  * **Audio Merging:** Automatically downloads and merges the best audio stream with high-resolution video.
-  * **Real-time Progress:** A dynamic progress bar shows percentage, download size, speed, and ETA.
-  * **Theme Toggle:** A simple switch to toggle between Dark Mode and Light Mode.
-  * **Custom Save Location:** A "Browse..." button lets you choose exactly where to save your file.
-  * **Open Folder Button:** Quickly open the download folder directly from the app.
+* **Zero-Config Setup:** Automatically handles FFmpeg integration in the background for high-quality (1080p+) video/audio merging. No manual downloads required!
+* **Resolution Selection:** Fetch a video URL and choose your exact preferred resolution and file size.
+* **Modern UI:** Clean, responsive interface with a built-in toggle for Dark Mode / Light Mode.
+* **Real-Time Tracking:** Live progress bar showing download speed, file size, and estimated time remaining.
+* **Mac-Friendly:** Built-in patch to automatically bypass common macOS Python SSL certificate errors.
 
------
+---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
-Follow these instructions to get the application running on your local machine.
-
-### 1\. Prerequisites (What you need)
-
-This script has three key dependencies: two Python libraries and one external program.
-
-  * **Python Libraries:**
-      * `yt-dlp`: The core downloader that interacts with YouTube.
-      * `sv-ttk`: The theme library for the modern dark/light mode GUI.
-  * **External Program:**
-      * `FFmpeg`: **This is required** for merging video and audio (especially for 1080p and higher).
-
-### 2\. Installation
-
-**A. Install Python Libraries**
-
-Open your terminal or PowerShell and install the two required libraries using `pip`:
+### 1. Install Dependencies
+Open your terminal or command prompt and install the required Python libraries:
 
 ```bash
-pip install yt-dlp
-pip install sv-ttk
+pip install yt-dlp sv-ttk imageio-ffmpeg
 ```
 
-**B. Install FFmpeg** (optional)
-
-`yt-dlp` needs `ffmpeg.exe` to combine video and audio.
-
-1.  Download FFmpeg from [https://www.gyan.dev/ffmpeg/builds/](https://www.gyan.dev/ffmpeg/builds/) (get the "full" build).
-2.  Unzip the file.
-3.  Go into the `bin` folder and find `ffmpeg.exe` and `ffprobe.exe`.
-4.  **Copy both `ffmpeg.exe` and `ffprobe.exe`** and paste them into the **same folder** as your `YT_downloder.py` script.
-
-### 3\. Running the App
-
-Once all requirements are installed, you can run the application from your terminal:
+### 2. Run the App
+Navigate to the folder containing the script and run:
 
 ```bash
 python local_cli.py
 ```
-## ignore other files, those are for packaging the app into an executable in server soon 
------
 
-## 📄 License
+### 🛠️ Note for Developers
+macOS SSL Errors: If you modify the code and encounter [SSL: CERTIFICATE_VERIFY_FAILED] errors on a Mac, ensure the ssl._create_unverified_context lines remain at the top of local_cli.py to bypass local certificate restrictions.
 
+Executable Packaging: Some files in this repository are reserved for future deployment (packaging the app into a standalone .exe or .app for servers). You only need local_cli.py to run the GUI.
+
+### 📄 License
 This project is licensed under the MIT License.
