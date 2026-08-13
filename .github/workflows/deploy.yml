@@ -7,18 +7,27 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    # This must match the label you gave the runner during setup
+    runs-on: repo-ytdown 
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-        
+
+      - name: Sync Configuration to /opt/
+        run: |
+          # Rsync copies the files from the runner workspace to your permanent config folder
+          rsync -avz --exclude '.git' ./ /opt/deployments/ytdown/
+
       - name: Deploy with Docker Compose
         run: |
+          cd /opt/deployments/ytdown
+          
           # Bring down existing containers
           docker-compose down
           
           # Rebuild and start in detached mode
           docker-compose up --build -d
           
-          # Optional: prune old images to save disk space
+          # Prune old images to save disk space
           docker image prune -f
