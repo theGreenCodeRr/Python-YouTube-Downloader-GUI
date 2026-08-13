@@ -122,7 +122,11 @@ async def startup_event():
 # API Endpoints
 @app.post("/api/info")
 async def fetch_formats(req: URLRequest):
-    ydl_opts = {'quiet': True, 'nocolor': True}
+    ydl_opts = {
+        'quiet': True, 
+        'nocolor': True,
+        'nocheckcertificate': True
+    }
     try:
         def extract():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
