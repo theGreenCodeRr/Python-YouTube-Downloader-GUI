@@ -24,10 +24,10 @@ jobs:
           cd /opt/deployments/ytdown
           
           # Bring down existing containers
-          docker-compose down
+          docker compose down
           
           # Rebuild and start in detached mode
-          docker-compose up --build -d
+          docker compose up --build -d
           
           # Prune old images to save disk space
           docker image prune -f
