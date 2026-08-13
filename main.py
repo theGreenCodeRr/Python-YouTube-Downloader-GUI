@@ -70,6 +70,9 @@ def download_video_sync(task_id: str, url: str, format_id: str, output_path: str
         'no-check-certificate': True,
     }
     
+    if os.path.exists("cookies.txt"):
+        ydl_opts['cookiefile'] = 'cookies.txt'
+    
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
@@ -126,6 +129,10 @@ async def fetch_formats(req: URLRequest):
         'nocolor': True,
         'nocheckcertificate': True
     }
+    
+    if os.path.exists("cookies.txt"):
+        ydl_opts['cookiefile'] = 'cookies.txt'
+
     try:
         def extract():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

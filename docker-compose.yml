@@ -9,4 +9,7 @@ services:
     volumes:
       # Binds the container's storage to your dedicated /var/www/ folder
       - /var/www/ytdown:/app/temp_storage
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     restart: unless-stopped
