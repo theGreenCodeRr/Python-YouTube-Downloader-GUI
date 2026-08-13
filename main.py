@@ -214,7 +214,7 @@ async def download_file(task_id: str, title: str = "video", background_tasks: Ba
 # Frontend Serving
 @app.get("/")
 async def serve_frontend(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html", context={"request": request})
 
 if __name__ == "__main__":
     import uvicorn
