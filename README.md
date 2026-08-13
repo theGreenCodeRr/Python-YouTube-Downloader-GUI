@@ -1,15 +1,22 @@
-# 🎥 Self-Hosted YouTube Downloader Web App
+# 🎥 Self-Hosted YouTube Downloader Web App v2
 
-A modern, fast, and robust self-hosted web application for downloading YouTube videos. Built with **Python (FastAPI)**, **yt-dlp**, and a clean vanilla HTML/CSS/JS frontend.
+A modern, fast, and robust self-hosted web application for downloading YouTube videos, built with **Python (FastAPI)**, **yt-dlp**, and a clean HTML/CSS/JS frontend.
 
-## ✨ Features
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![Docker](https://img.shields.io/badge/docker-ready-blue)
 
-* **Self-Hosted Web GUI:** Access the downloader from any device on your network via a browser.
-* **Format Selection:** Fetch a video URL and choose your exact preferred resolution and format.
-* **Background Processing:** The server downloads the video asynchronously without blocking the UI, providing real-time status polling.
-* **Modern UI:** Clean, responsive interface with a built-in toggle for Dark Mode / Light Mode.
-* **Automated Cleanup:** Automatically purges temporary video files from the server after they are downloaded to your device, and includes a 24-hour fallback cleanup scheduler to conserve disk space.
-* **CI/CD Ready:** Includes a GitHub Actions workflow to automatically deploy to a self-hosted runner.
+---
+
+## ✨ Features (v2)
+
+* **Modern UI with Thumbnails:** A beautiful, responsive interface featuring Dark Mode support, video thumbnails, and a clean side-by-side layout.
+* **Download History:** A built-in "Recent Downloads" panel keeps track of your ongoing and past downloads directly in the browser.
+* **Advanced Audio Extraction:** Download videos directly as high-quality audio files (**MP3**, **Lossless WAV**, or **Lossless FLAC**) via server-side FFmpeg processing.
+* **Visual Playlist Support:** Paste a YouTube playlist URL to render a clean list of videos. Click any video to instantly queue it up individually, ensuring server stability.
+* **Anti-IP Block Support:** Seamlessly supports `cookies.txt` for bypassing YouTube IP blocks (frequent for VPS/Data Center deployments).
+* **Automated Cleanup:** Automatically purges temporary video files from the server after they are downloaded to your device, backed by a 24-hour fallback cleanup scheduler.
+* **Self-Updating Base:** Automated weekly GitHub Actions rebuild the `yt-dlp` master branch to ensure extractors are always up to date with YouTube API changes.
 
 ---
 
@@ -21,11 +28,11 @@ The easiest way to run the application is using Docker and Docker Compose.
 Open your terminal in the project directory and run:
 
 ```bash
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 ### 2. Access the App
-Open your web browser and navigate to:
+Open your web browser and navigate to the application (default port is `8000`):
 ```
 http://localhost:8000
 ```
@@ -50,8 +57,17 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ---
 
-## 🔄 Deployment (GitHub Actions)
+## 🍪 Bypassing YouTube Blocks (cookies.txt)
 
-This repository is configured with a continuous deployment workflow. 
-When you push code to the `main` branch, the `.github/workflows/deploy.yml` action will trigger.
-Ensure your target server is configured as a `self-hosted` runner in your GitHub repository settings to automatically pull and deploy the latest Docker containers.
+If your deployment server's IP address gets blocked by YouTube (e.g., throwing `KeyError('INNERTUBE_CONTEXT')` or "Failed to extract player response"):
+1. Export a `cookies.txt` file from your desktop browser using an extension like *Get cookies.txt*.
+2. Place the `cookies.txt` file directly in the root directory of this project.
+3. Restart the server/container. The app will automatically detect and use it for all future extractions.
+
+---
+
+## 🔄 CI/CD & Auto-Updates
+
+This repository is configured with two GitHub Actions:
+- **Continuous Deployment (`deploy.yml`)**: Pushing to the `main` branch will automatically deploy the latest code to your self-hosted runner.
+- **Weekly Auto-Update (`weekly-update.yml`)**: Rebuilds the Docker image every week without cache to pull the absolute latest bleeding-edge version of `yt-dlp` to prevent API breakages.
