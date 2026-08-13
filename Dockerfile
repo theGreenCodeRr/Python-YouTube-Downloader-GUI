@@ -5,6 +5,7 @@ WORKDIR /app
 # Install ffmpeg which is required for yt-dlp to merge formats
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
