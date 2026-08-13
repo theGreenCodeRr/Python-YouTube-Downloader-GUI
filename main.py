@@ -67,6 +67,8 @@ def download_video_sync(task_id: str, url: str, format_id: str, output_path: str
         'quiet': True,
         'nocolor': True,
         'no_playlist': True,
+        'nocheckcertificate': True,
+        'no-check-certificate': True,
     }
     
     try:
