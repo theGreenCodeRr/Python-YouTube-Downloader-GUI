@@ -1,0 +1,36 @@
+name: Weekly yt-dlp Update
+
+on:
+  schedule:
+    # Runs at 02:00 every Sunday (UTC)
+    - cron: '0 2 * * 0'
+  workflow_dispatch: # Also allows you to trigger it manually from the GitHub UI
+
+jobs:
+  update:
+    runs-on: repo-ytdown 
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Sync Configuration to /opt/
+        run: |
+          rsync -avz --exclude '.git' ./ /opt/deployments/ytdown/
+
+      - name: Rebuild without cache to force yt-dlp update
+        run: |
+          cd /opt/deployments/ytdown
+          
+          # Bring down existing containers
+          docker compose down
+          
+          # Rebuild with --no-cache. This forces Docker to re-run "pip install", 
+          # which reaches out to PyPI and grabs the absolute latest yt-dlp version.
+          docker compose build --no-cache
+          
+          # Start the new container
+          docker compose up -d
+          
+          # Prune old images to save disk space
+          docker image prune -f
