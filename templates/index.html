@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Video Downloader</title>
+    <!-- Use Inter font for a modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --fg-color: #0f172a;
+            --input-bg: #ffffff;
+            --border-color: #cbd5e1;
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --list-hover: #f1f5f9;
+            --selected-bg: #eff6ff;
+            --selected-border: #3b82f6;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body.dark-mode {
+            --bg-color: #0f172a;
+            --fg-color: #f8fafc;
+            --input-bg: #1e293b;
+            --border-color: #334155;
+            --primary-color: #3b82f6;
+            --primary-hover: #60a5fa;
+            --list-hover: #334155;
+            --selected-bg: #1e3a8a;
+            --selected-border: #60a5fa;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--fg-color);
+            margin: 0;
+            padding: 40px 20px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* --- Header & Theme Toggle --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .header h2 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .theme-switch-wrapper { display: flex; align-items: center; }
+        .theme-switch { display: inline-block; height: 26px; position: relative; width: 50px; }
+        .theme-switch input { display: none; }
+        .slider { background-color: #cbd5e1; bottom: 0; cursor: pointer; left: 0; position: absolute; right: 0; top: 0; transition: .4s; border-radius: 34px; }
+        .slider:before { background-color: #fff; bottom: 3px; content: ""; height: 20px; left: 3px; position: absolute; transition: .4s; width: 20px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        /* --- URL Input --- */
+        .url-group { display: flex; gap: 12px; margin-bottom: 25px; }
+        #urlInput {
+            flex-grow: 1;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-family: inherit;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--input-bg);
+            color: var(--fg-color);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        #urlInput:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        button:hover:not(:disabled) { 
+            background-color: var(--primary-hover); 
+        }
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        button:disabled { 
+            background-color: #94a3b8; 
+            cursor: not-allowed; 
+            opacity: 0.7;
+        }
+
+        /* --- Format List --- */
+        #videoTitle {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        #formatList {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 25px 0;
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: none; /* hidden initially */
+        }
+        #formatList li {
+            padding: 14px 18px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s ease;
+            font-size: 0.95rem;
+        }
+        #formatList li:last-child { border-bottom: none; }
+        #formatList li:hover { background-color: var(--list-hover); }
+        #formatList li.selected {
+            background-color: var(--selected-bg);
+            border-left: 4px solid var(--selected-border);
+            padding-left: 14px; /* account for border */
+        }
+        
+        .format-details {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .format-res { font-weight: 600; min-width: 60px; }
+        .format-ext { color: #64748b; font-size: 0.85rem; text-transform: uppercase; background: var(--list-hover); padding: 2px 6px; border-radius: 4px;}
+        body.dark-mode .format-ext { background: #334155; color: #cbd5e1; }
+        .format-size { font-family: monospace; font-size: 0.95rem;}
+        .format-note { color: #64748b; font-size: 0.85rem; text-align: right; }
+
+        /* --- Status & Download Button --- */
+        #downloadButton { width: 100%; display: none; }
+        
+        #statusContainer {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #statusText {
+            font-size: 0.95rem;
+            text-align: center;
+            font-weight: 500;
+            color: #64748b;
+        }
+        body.dark-mode #statusText { color: #94a3b8; }
+        
+        .status-error { color: var(--error-color) !important; }
+        .status-success { color: var(--success-color) !important; }
+
+        /* Modern Spinner */
+        .loader {
+            display: none;
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { 
+            to { transform: rotate(360deg); } 
+        }
+        
+        /* Progress Bar (Indeterminate for now, can be upgraded later) */
+        .progress-container {
+            display: none;
+            width: 100%;
+            height: 6px;
+            background-color: var(--list-hover);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 100%;
+            background-color: var(--primary-color);
+            animation: indeterminate 1.5s infinite linear;
+            transform-origin: 0% 50%;
+        }
+        @keyframes indeterminate {
+            0% { transform: translateX(0) scaleX(0); }
+            40% { transform: translateX(0) scaleX(0.4); }
+            100% { transform: translateX(100%) scaleX(0.5); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>Web Video Downloader</h2>
+            <div class="theme-switch-wrapper">
+                <label class="theme-switch" for="themeToggle" aria-label="Toggle Dark Mode">
+                    <input type="checkbox" id="themeToggle" />
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="url-group">
+            <input type="text" id="urlInput" placeholder="Paste YouTube URL here..." autocomplete="off">
+            <button id="fetchButton">Fetch</button>
+        </div>
+
+        <h3 id="videoTitle"></h3>
+        <ul id="formatList"></ul>
+
+        <button id="downloadButton" disabled>Download Selected Format</button>
+
+        <div id="statusContainer">
+            <div class="loader" id="loader"></div>
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar"></div>
+            </div>
+            <div id="statusText"></div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const urlInput = document.getElementById('urlInput');
+        const fetchButton = document.getElementById('fetchButton');
+        const formatList = document.getElementById('formatList');
+        const downloadButton = document.getElementById('downloadButton');
+        const statusText = document.getElementById('statusText');
+        const loader = document.getElementById('loader');
+        const progressContainer = document.getElementById('progressContainer');
+        const videoTitle = document.getElementById('videoTitle');
+        const themeToggle = document.getElementById('themeToggle');
+
+        // State
+        let selectedFormatId = null;
+        let currentUrl = null;
+        let currentTitle = 'video';
+        let pollingInterval = null;
+
+        // API Base
+        const API_URL = window.location.origin;
+
+        function setStatus(message, type = 'info') {
+            statusText.textContent = message;
+            statusText.className = '';
+            if (type === 'error') statusText.classList.add('status-error');
+            if (type === 'success') statusText.classList.add('status-success');
+        }
+
+        function setUIState(state) {
+            // states: idle, fetching, formatting, server-downloading, ready
+            if (state === 'idle') {
+                loader.style.display = 'none';
+                progressContainer.style.display = 'none';
+                fetchButton.disabled = false;
+                downloadButton.disabled = false;
+            } else if (state === 'fetching') {
+                loader.style.display = 'block';
+                progressContainer.style.display = 'none';
+                fetchButton.disabled = true;
+                downloadButton.style.display = 'none';
+                formatList.style.display = 'none';
+                videoTitle.textContent = '';
+                setStatus('Fetching available formats...');
+            } else if (state === 'formatting') {
+                loader.style.display = 'none';
+                progressContainer.style.display = 'none';
+                fetchButton.disabled = false;
+                downloadButton.style.display = 'block';
+                downloadButton.disabled = true;
+                formatList.style.display = 'block';
+                setStatus('Select a format to download.');
+            } else if (state === 'server-downloading') {
+                loader.style.display = 'none';
+                progressContainer.style.display = 'block';
+                fetchButton.disabled = true;
+                downloadButton.disabled = true;
+                setStatus('Server is downloading and processing the video...');
+            }
+        }
+
+        async function fetchFormats() {
+            const url = urlInput.value.trim();
+            if (!url) {
+                setStatus('Please paste a YouTube URL first.', 'error');
+                return;
+            }
+            
+            currentUrl = url;
+            selectedFormatId = null;
+            formatList.innerHTML = '';
+            setUIState('fetching');
+
+            try {
+                const response = await fetch(`${API_URL}/api/info`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Failed to fetch formats');
+                }
+
+                const data = await response.json();
+                
+                videoTitle.textContent = data.title;
+                currentTitle = data.title;
+                if (!data.formats || data.formats.length === 0) {
+                     setStatus('No video formats found.', 'error');
+                     setUIState('idle');
+                     return;
+                }
+
+                data.formats.forEach(f => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div class="format-details">
+                            <span class="format-res">${f.res}</span>
+                            <span class="format-ext">${f.ext}</span>
+                            <span class="format-size">${f.size_str}</span>
+                        </div>
+                        <span class="format-note">${f.note}</span>
+                    `;
+                    
+                    li.addEventListener('click', () => {
+                        document.querySelectorAll('#formatList li.selected').forEach(el => el.classList.remove('selected'));
+                        li.classList.add('selected');
+                        selectedFormatId = f.id;
+                        downloadButton.disabled = false;
+                    });
+                    
+                    formatList.appendChild(li);
+                });
+                
+                setUIState('formatting');
+
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, 'error');
+                setUIState('idle');
+            }
+        }
+        
+        async function startDownload() {
+            if (!selectedFormatId || !currentUrl) {
+                setStatus('Please select a format.', 'error');
+                return;
+            }
+            
+            setUIState('server-downloading');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/process`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: currentUrl, format_id: selectedFormatId })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Failed to start download');
+                }
+
+                const data = await response.json();
+                pollStatus(data.task_id);
+
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, 'error');
+                setUIState('idle');
+                downloadButton.disabled = false;
+            }
+        }
+
+        function pollStatus(taskId) {
+            if (pollingInterval) clearInterval(pollingInterval);
+            
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_URL}/api/status/${taskId}`);
+                    if (!response.ok) throw new Error("Failed to check status");
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'completed') {
+                        clearInterval(pollingInterval);
+                        setStatus('Server finished processing! Downloading to your device...', 'success');
+                        progressContainer.style.display = 'none';
+                        triggerFileDownload(taskId);
+                        setTimeout(() => setUIState('idle'), 2000); // Reset UI after a bit
+                    } else if (data.status === 'failed') {
+                        clearInterval(pollingInterval);
+                        throw new Error(data.error || 'Server failed to process the video.');
+                    }
+                } catch (error) {
+                    clearInterval(pollingInterval);
+                    setStatus(`Error: ${error.message}`, 'error');
+                    setUIState('idle');
+                    downloadButton.disabled = false;
+                }
+            }, 2000); // poll every 2 seconds
+        }
+
+        function triggerFileDownload(taskId) {
+            // Trigger actual file download to client via GET request
+            const downloadUrl = new URL(`${API_URL}/api/download/${taskId}`);
+            downloadUrl.searchParams.append('title', currentTitle);
+            
+            // Using a hidden iframe or just window.location works. window.location is easiest.
+            window.location.href = downloadUrl.href;
+        }
+        
+        function toggleTheme() {
+            if (themeToggle.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        
+        // Listeners
+        fetchButton.addEventListener('click', fetchFormats);
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') fetchFormats();
+        });
+        downloadButton.addEventListener('click', startDownload);
+        themeToggle.addEventListener('change', toggleTheme);
+        
+        // Init
+        if (localStorage.getItem('theme') === 'dark' || 
+            (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            themeToggle.checked = true;
+            toggleTheme();
+        }
+
+    </script>
+</body>
+</html>
