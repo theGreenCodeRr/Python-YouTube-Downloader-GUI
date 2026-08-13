@@ -65,11 +65,10 @@ def download_video_sync(task_id: str, url: str, format_id: str, output_path: str
         'merge_output_format': 'mp4',
         'outtmpl': output_path,
         'quiet': True,
-        'nocolor': True,
         'no_playlist': True,
         'nocheckcertificate': True,
         'no-check-certificate': True,
-        'extractor_args': {'youtube': {'player_client': ['ios,android,web']}},
+        'extractor_args': {'youtube': {'player_client': ['web_embedded']}},
     }
     
     try:
@@ -127,7 +126,7 @@ async def fetch_formats(req: URLRequest):
         'quiet': True, 
         'nocolor': True,
         'nocheckcertificate': True,
-        'extractor_args': {'youtube': {'player_client': ['ios,android,web']}}
+        'extractor_args': {'youtube': {'player_client': ['web_embedded']}}
     }
     try:
         def extract():
