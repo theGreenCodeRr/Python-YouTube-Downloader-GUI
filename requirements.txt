@@ -1,4 +1,4 @@
 fastapi[all]
 uvicorn
-yt-dlp>=2026.7.4
+https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz
 aiofiles

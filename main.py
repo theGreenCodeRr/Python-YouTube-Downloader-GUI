@@ -68,7 +68,6 @@ def download_video_sync(task_id: str, url: str, format_id: str, output_path: str
         'no_playlist': True,
         'nocheckcertificate': True,
         'no-check-certificate': True,
-        'extractor_args': {'youtube': {'player_client': ['android']}},
     }
     
     try:
@@ -125,8 +124,7 @@ async def fetch_formats(req: URLRequest):
     ydl_opts = {
         'quiet': True, 
         'nocolor': True,
-        'nocheckcertificate': True,
-        'extractor_args': {'youtube': {'player_client': ['android']}}
+        'nocheckcertificate': True
     }
     try:
         def extract():
