@@ -46,9 +46,29 @@
             justify-content: center;
         }
 
-        .container {
+        .main-wrapper {
+            display: flex;
+            gap: 20px;
             width: 100%;
-            max-width: 700px;
+            max-width: 1100px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .container {
+            flex: 2;
+            min-width: 400px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .recent-container {
+            flex: 1;
+            min-width: 300px;
             background-color: var(--input-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
@@ -122,17 +142,42 @@
             opacity: 0.7;
         }
 
-        /* --- Format List --- */
+        /* --- Format List & Metadata --- */
+        .video-meta {
+            display: none;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .video-thumb {
+            width: 120px;
+            height: 68px;
+            object-fit: cover;
+            border-radius: 8px;
+            background-color: var(--border-color);
+        }
+        .video-title-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
         #videoTitle {
             font-size: 1.1rem;
-            margin-bottom: 15px;
-            font-weight: 500;
+            margin: 0;
+            font-weight: 600;
         }
+        #videoType {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
         #formatList {
             list-style: none;
             padding: 0;
             margin: 0 0 25px 0;
-            max-height: 350px;
+            max-height: 400px;
             overflow-y: auto;
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -166,6 +211,55 @@
         body.dark-mode .format-ext { background: #334155; color: #cbd5e1; }
         .format-size { font-family: monospace; font-size: 0.95rem;}
         .format-note { color: #64748b; font-size: 0.85rem; text-align: right; }
+
+        /* --- Recent Downloads --- */
+        .recent-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .recent-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .recent-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .recent-thumb {
+            width: 70px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            background-color: var(--border-color);
+        }
+        .recent-info {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .recent-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .recent-status {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .recent-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
 
         /* --- Status & Download Button --- */
         #downloadButton { width: 100%; display: none; }
@@ -230,33 +324,52 @@
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
-            <h2>Web Video Downloader</h2>
-            <div class="theme-switch-wrapper">
-                <label class="theme-switch" for="themeToggle" aria-label="Toggle Dark Mode">
-                    <input type="checkbox" id="themeToggle" />
-                    <span class="slider"></span>
-                </label>
+    <div class="main-wrapper">
+        <div class="container">
+            <div class="header">
+                <h2>Web Video Downloader</h2>
+                <div class="theme-switch-wrapper">
+                    <label class="theme-switch" for="themeToggle" aria-label="Toggle Dark Mode">
+                        <input type="checkbox" id="themeToggle" />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="url-group">
+                <input type="text" id="urlInput" placeholder="Paste YouTube URL or Playlist here..." autocomplete="off">
+                <button id="fetchButton">Fetch</button>
+            </div>
+
+            <div class="video-meta" id="videoMeta">
+                <img id="videoThumb" class="video-thumb" src="" alt="Thumbnail">
+                <div class="video-title-wrap">
+                    <span id="videoType">Video</span>
+                    <h3 id="videoTitle"></h3>
+                </div>
+            </div>
+            
+            <ul id="formatList"></ul>
+
+            <button id="downloadButton" disabled>Download Selected Format</button>
+
+            <div id="statusContainer">
+                <div class="loader" id="loader"></div>
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar"></div>
+                </div>
+                <div id="statusText"></div>
             </div>
         </div>
 
-        <div class="url-group">
-            <input type="text" id="urlInput" placeholder="Paste YouTube URL here..." autocomplete="off">
-            <button id="fetchButton">Fetch</button>
-        </div>
-
-        <h3 id="videoTitle"></h3>
-        <ul id="formatList"></ul>
-
-        <button id="downloadButton" disabled>Download Selected Format</button>
-
-        <div id="statusContainer">
-            <div class="loader" id="loader"></div>
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-bar"></div>
+        <div class="recent-container">
+            <div class="header" style="margin-bottom: 15px;">
+                <h2>Recent Downloads</h2>
             </div>
-            <div id="statusText"></div>
+            <ul class="recent-list" id="recentList">
+                <!-- Recent items injected here -->
+                <div id="statusText" style="text-align: left;">Loading history...</div>
+            </ul>
         </div>
     </div>
 
@@ -269,14 +382,22 @@
         const statusText = document.getElementById('statusText');
         const loader = document.getElementById('loader');
         const progressContainer = document.getElementById('progressContainer');
+        
+        const videoMeta = document.getElementById('videoMeta');
+        const videoThumb = document.getElementById('videoThumb');
         const videoTitle = document.getElementById('videoTitle');
+        const videoType = document.getElementById('videoType');
+        
         const themeToggle = document.getElementById('themeToggle');
+        const recentList = document.getElementById('recentList');
 
         // State
         let selectedFormatId = null;
         let currentUrl = null;
         let currentTitle = 'video';
+        let currentThumbnail = '';
         let pollingInterval = null;
+        let recentPollingInterval = null;
 
         // API Base
         const API_URL = window.location.origin;
@@ -289,7 +410,6 @@
         }
 
         function setUIState(state) {
-            // states: idle, fetching, formatting, server-downloading, ready
             if (state === 'idle') {
                 loader.style.display = 'none';
                 progressContainer.style.display = 'none';
@@ -301,6 +421,7 @@
                 fetchButton.disabled = true;
                 downloadButton.style.display = 'none';
                 formatList.style.display = 'none';
+                videoMeta.style.display = 'none';
                 videoTitle.textContent = '';
                 setStatus('Fetching available formats...');
             } else if (state === 'formatting') {
@@ -310,7 +431,16 @@
                 downloadButton.style.display = 'block';
                 downloadButton.disabled = true;
                 formatList.style.display = 'block';
+                videoMeta.style.display = 'flex';
                 setStatus('Select a format to download.');
+            } else if (state === 'playlist') {
+                loader.style.display = 'none';
+                progressContainer.style.display = 'none';
+                fetchButton.disabled = false;
+                downloadButton.style.display = 'none';
+                formatList.style.display = 'block';
+                videoMeta.style.display = 'flex';
+                setStatus('Select a video from the playlist to fetch its formats.');
             } else if (state === 'server-downloading') {
                 loader.style.display = 'none';
                 progressContainer.style.display = 'block';
@@ -348,35 +478,72 @@
                 
                 videoTitle.textContent = data.title;
                 currentTitle = data.title;
-                if (!data.formats || data.formats.length === 0) {
-                     setStatus('No video formats found.', 'error');
-                     setUIState('idle');
-                     return;
-                }
-
-                data.formats.forEach(f => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <div class="format-details">
-                            <span class="format-res">${f.res}</span>
-                            <span class="format-ext">${f.ext}</span>
-                            <span class="format-size">${f.size_str}</span>
-                        </div>
-                        <span class="format-note">${f.note}</span>
-                    `;
+                
+                if (data.is_playlist) {
+                    videoType.textContent = 'Playlist';
+                    videoThumb.src = ''; // Playlists don't have a single thumb returned in flat extraction usually
+                    videoThumb.style.display = 'none';
                     
-                    li.addEventListener('click', () => {
-                        document.querySelectorAll('#formatList li.selected').forEach(el => el.classList.remove('selected'));
-                        li.classList.add('selected');
-                        selectedFormatId = f.id;
-                        downloadButton.disabled = false;
+                    if (!data.entries || data.entries.length === 0) {
+                        setStatus('No videos found in playlist.', 'error');
+                        setUIState('idle');
+                        return;
+                    }
+                    
+                    data.entries.forEach(entry => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="format-details">
+                                <span class="format-res" style="max-width: 400px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${entry.title}</span>
+                            </div>
+                            <span class="format-note">Click to Fetch</span>
+                        `;
+                        
+                        li.addEventListener('click', () => {
+                            urlInput.value = entry.url;
+                            fetchFormats();
+                        });
+                        
+                        formatList.appendChild(li);
                     });
                     
-                    formatList.appendChild(li);
-                });
-                
-                setUIState('formatting');
+                    setUIState('playlist');
+                } else {
+                    // Single Video
+                    videoType.textContent = 'Video';
+                    videoThumb.src = data.thumbnail;
+                    videoThumb.style.display = 'block';
+                    currentThumbnail = data.thumbnail;
+                    
+                    if (!data.formats || data.formats.length === 0) {
+                         setStatus('No video formats found.', 'error');
+                         setUIState('idle');
+                         return;
+                    }
 
+                    data.formats.forEach(f => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="format-details">
+                                <span class="format-res">${f.res}</span>
+                                <span class="format-ext">${f.ext}</span>
+                                <span class="format-size">${f.size_str}</span>
+                            </div>
+                            <span class="format-note">${f.note}</span>
+                        `;
+                        
+                        li.addEventListener('click', () => {
+                            document.querySelectorAll('#formatList li.selected').forEach(el => el.classList.remove('selected'));
+                            li.classList.add('selected');
+                            selectedFormatId = f.id;
+                            downloadButton.disabled = false;
+                        });
+                        
+                        formatList.appendChild(li);
+                    });
+                    
+                    setUIState('formatting');
+                }
             } catch (error) {
                 setStatus(`Error: ${error.message}`, 'error');
                 setUIState('idle');
@@ -395,7 +562,12 @@
                 const response = await fetch(`${API_URL}/api/process`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: currentUrl, format_id: selectedFormatId })
+                    body: JSON.stringify({ 
+                        url: currentUrl, 
+                        format_id: selectedFormatId,
+                        title: currentTitle,
+                        thumbnail: currentThumbnail
+                    })
                 });
 
                 if (!response.ok) {
@@ -405,6 +577,7 @@
 
                 const data = await response.json();
                 pollStatus(data.task_id);
+                fetchRecentDownloads(); // Refresh history instantly
 
             } catch (error) {
                 setStatus(`Error: ${error.message}`, 'error');
@@ -428,9 +601,11 @@
                         setStatus('Server finished processing! Downloading to your device...', 'success');
                         progressContainer.style.display = 'none';
                         triggerFileDownload(taskId);
+                        fetchRecentDownloads();
                         setTimeout(() => setUIState('idle'), 2000); // Reset UI after a bit
                     } else if (data.status === 'failed') {
                         clearInterval(pollingInterval);
+                        fetchRecentDownloads();
                         throw new Error(data.error || 'Server failed to process the video.');
                     }
                 } catch (error) {
@@ -443,11 +618,52 @@
         }
 
         function triggerFileDownload(taskId) {
-            // Trigger actual file download to client via GET request
             const downloadUrl = new URL(`${API_URL}/api/download/${taskId}`);
             downloadUrl.searchParams.append('title', currentTitle);
-            
-            // Using a hidden iframe or just window.location works. window.location is easiest.
+            window.location.href = downloadUrl.href;
+        }
+        
+        async function fetchRecentDownloads() {
+            try {
+                const response = await fetch(`${API_URL}/api/recent`);
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                recentList.innerHTML = '';
+                if (!data.recent || data.recent.length === 0) {
+                    recentList.innerHTML = '<span class="status-error" style="color: #64748b !important;">No recent downloads.</span>';
+                    return;
+                }
+                
+                data.recent.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'recent-item';
+                    
+                    let statusColor = '#64748b';
+                    if (item.status === 'completed') statusColor = 'var(--success-color)';
+                    if (item.status === 'failed') statusColor = 'var(--error-color)';
+                    if (item.status === 'processing') statusColor = 'var(--primary-color)';
+
+                    const safeTitle = (item.title || 'video').replace(/"/g, '&quot;');
+
+                    li.innerHTML = `
+                        <img class="recent-thumb" src="${item.thumbnail || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='}" alt="thumb" onerror="this.style.display='none'">
+                        <div class="recent-info">
+                            <span class="recent-title" title="${safeTitle}">${safeTitle}</span>
+                            <span class="recent-status" style="color: ${statusColor}">${item.status.toUpperCase()}</span>
+                        </div>
+                        ${item.status === 'completed' ? `<button class="recent-btn" onclick="triggerDownloadById('${item.task_id}', '${safeTitle}')">Save</button>` : ''}
+                    `;
+                    recentList.appendChild(li);
+                });
+            } catch (e) {
+                console.error("Failed to fetch recent", e);
+            }
+        }
+        
+        window.triggerDownloadById = function(taskId, title) {
+            const downloadUrl = new URL(`${API_URL}/api/download/${taskId}`);
+            downloadUrl.searchParams.append('title', title);
             window.location.href = downloadUrl.href;
         }
         
@@ -475,6 +691,10 @@
             themeToggle.checked = true;
             toggleTheme();
         }
+        
+        // Start polling recent downloads
+        fetchRecentDownloads();
+        recentPollingInterval = setInterval(fetchRecentDownloads, 5000);
 
     </script>
 </body>

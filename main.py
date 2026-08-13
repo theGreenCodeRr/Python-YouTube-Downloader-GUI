@@ -38,6 +38,9 @@ os.makedirs(TEMP_STORAGE_DIR, exist_ok=True)
 # { task_id: {"status": "processing" | "completed" | "failed", "filepath": str, "error": str} }
 downloads = {}
 
+# Keep track of recent downloads for the UI (capped at 50)
+recent_downloads = []
+
 templates = Jinja2Templates(directory="templates")
 
 # Models
@@ -47,6 +50,8 @@ class URLRequest(BaseModel):
 class ProcessRequest(BaseModel):
     url: str
     format_id: str
+    title: str = "video"
+    thumbnail: str = ""
 
 # Helper functions
 def format_bytes(b):
@@ -60,8 +65,9 @@ def download_video_sync(task_id: str, url: str, format_id: str, output_path: str
     """
     Synchronous download function meant to be run in a separate thread.
     """
+    is_audio_only = format_id.startswith('audio-')
+    
     ydl_opts = {
-        'format': f'{format_id}+bestaudio/b',
         'merge_output_format': 'mp4',
         'outtmpl': output_path,
         'quiet': True,
@@ -70,6 +76,19 @@ def download_video_sync(task_id: str, url: str, format_id: str, output_path: str
         'no-check-certificate': True,
     }
     
+    if is_audio_only:
+        audio_codec = format_id.split('-')[1] # mp3, wav, flac
+        ydl_opts['format'] = 'bestaudio/best'
+        # when extracting audio, yt-dlp will change the extension (e.g. .mp4 -> .mp3)
+        # we will handle finding the correct file after download
+        ydl_opts['postprocessors'] = [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': audio_codec,
+            'preferredquality': '192',
+        }]
+    else:
+        ydl_opts['format'] = f'{format_id}+bestaudio/b'
+    
     if os.path.exists("cookies.txt"):
         ydl_opts['cookiefile'] = 'cookies.txt'
     
@@ -77,26 +96,36 @@ def download_video_sync(task_id: str, url: str, format_id: str, output_path: str
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
         
-        # Verify if file actually exists after download (yt-dlp adds extension sometimes if missing)
-        # We enforced outtmpl, so it should be exact unless there's a merging issue.
-        if os.path.exists(output_path):
+        # Audio extraction changes the file extension, so we must search for the final file
+        base_path = os.path.splitext(output_path)[0]
+        possible_files = [f for f in os.listdir(TEMP_STORAGE_DIR) if f.startswith(os.path.basename(base_path))]
+        
+        if possible_files:
+            # Found the completed file
+            actual_path = os.path.join(TEMP_STORAGE_DIR, possible_files[0])
+            downloads[task_id]["filepath"] = actual_path
             downloads[task_id]["status"] = "completed"
+            
+            # Update history status
+            for idx, item in enumerate(recent_downloads):
+                if item["task_id"] == task_id:
+                    recent_downloads[idx]["status"] = "completed"
+                    break
         else:
-            # yt-dlp might have appended .mp4 if it wasn't specified, but we did specify it.
-            # let's try to find if a file starts with the output_path name
-            base_path = os.path.splitext(output_path)[0]
-            possible_files = [f for f in os.listdir(TEMP_STORAGE_DIR) if f.startswith(os.path.basename(base_path))]
-            if possible_files:
-                actual_path = os.path.join(TEMP_STORAGE_DIR, possible_files[0])
-                downloads[task_id]["filepath"] = actual_path
-                downloads[task_id]["status"] = "completed"
-            else:
-                downloads[task_id]["status"] = "failed"
-                downloads[task_id]["error"] = "Output file not found after download."
+            downloads[task_id]["status"] = "failed"
+            downloads[task_id]["error"] = "Output file not found after download."
+            for idx, item in enumerate(recent_downloads):
+                if item["task_id"] == task_id:
+                    recent_downloads[idx]["status"] = "failed"
+                    break
 
     except Exception as e:
         downloads[task_id]["status"] = "failed"
         downloads[task_id]["error"] = str(e)
+        for idx, item in enumerate(recent_downloads):
+            if item["task_id"] == task_id:
+                recent_downloads[idx]["status"] = "failed"
+                break
 
 
 # Background task to clean up old files periodically
@@ -127,7 +156,8 @@ async def fetch_formats(req: URLRequest):
     ydl_opts = {
         'quiet': True, 
         'nocolor': True,
-        'nocheckcertificate': True
+        'nocheckcertificate': True,
+        'extract_flat': 'in_playlist'  # Do not download formats for every video in a playlist
     }
     
     if os.path.exists("cookies.txt"):
@@ -138,9 +168,25 @@ async def fetch_formats(req: URLRequest):
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 return ydl.extract_info(req.url, download=False)
         
-        # Run in thread pool to not block async loop
         info = await asyncio.to_thread(extract)
         
+        # Check if it's a playlist
+        if info.get('_type') == 'playlist':
+            entries = []
+            for entry in info.get('entries', []):
+                if entry:
+                    entries.append({
+                        "url": entry.get('url') or entry.get('webpage_url'),
+                        "title": entry.get('title', 'Unknown Title'),
+                        "duration": entry.get('duration'),
+                    })
+            return {
+                "is_playlist": True,
+                "title": info.get('title', 'YouTube Playlist'),
+                "entries": entries
+            }
+        
+        # It's a single video
         formats_list = []
         for f in info.get('formats', []):
             if f.get('vcodec', 'none') != 'none':
@@ -152,9 +198,16 @@ async def fetch_formats(req: URLRequest):
                     "note": f.get('format_note', ''),
                     "size_str": format_bytes(filesize),
                 })
+                
+        # Inject Advanced Audio Formats
+        formats_list.insert(0, {"id": "audio-mp3", "ext": "mp3", "res": "Audio", "note": "High Quality MP3", "size_str": "Auto"})
+        formats_list.insert(1, {"id": "audio-wav", "ext": "wav", "res": "Audio", "note": "Lossless WAV", "size_str": "Auto"})
+        formats_list.insert(2, {"id": "audio-flac", "ext": "flac", "res": "Audio", "note": "Lossless FLAC", "size_str": "Auto"})
         
         return {
+            "is_playlist": False,
             "title": info.get('title', 'video'),
+            "thumbnail": info.get('thumbnail', ''),
             "formats": formats_list
         }
     except Exception as e:
@@ -171,10 +224,27 @@ async def process_video(req: ProcessRequest, background_tasks: BackgroundTasks):
         "error": None
     }
     
+    # Save to history
+    recent_downloads.insert(0, {
+        "task_id": task_id,
+        "title": req.title,
+        "thumbnail": req.thumbnail,
+        "format": req.format_id,
+        "status": "processing",
+        "timestamp": time.time()
+    })
+    # Cap history at 50
+    if len(recent_downloads) > 50:
+        recent_downloads.pop()
+    
     # Spawn background task
     background_tasks.add_task(download_video_sync, task_id, req.url, req.format_id, output_path)
     
     return {"task_id": task_id}
+
+@app.get("/api/recent")
+async def get_recent():
+    return {"recent": recent_downloads}
 
 @app.get("/api/status/{task_id}")
 async def get_status(task_id: str):
