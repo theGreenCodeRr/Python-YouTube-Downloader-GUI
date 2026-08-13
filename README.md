@@ -8,6 +8,13 @@ A modern, fast, and robust self-hosted web application for downloading YouTube v
 
 ---
 
+## 🌐 Live Demo
+
+You can test the functionality of this application before installing it yourself:
+👉 **[Test the Live Demo Here](https://yt.quantumsofts.com/)**
+
+---
+
 ## ✨ Features (v2)
 
 * **Modern UI with Thumbnails:** A beautiful, responsive interface featuring Dark Mode support, video thumbnails, and a clean side-by-side layout.
