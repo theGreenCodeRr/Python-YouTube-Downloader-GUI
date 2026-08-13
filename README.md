@@ -1,37 +1,57 @@
-# 🎥 Python YouTube Downloader
+# 🎥 Self-Hosted YouTube Downloader Web App
 
-A lightweight, modern desktop app for downloading YouTube videos. Built with Python, `tkinter`, and `yt-dlp`. 
+A modern, fast, and robust self-hosted web application for downloading YouTube videos. Built with **Python (FastAPI)**, **yt-dlp**, and a clean vanilla HTML/CSS/JS frontend.
 
 ## ✨ Features
 
-* **Zero-Config Setup:** Automatically handles FFmpeg integration in the background for high-quality (1080p+) video/audio merging. No manual downloads required!
-* **Resolution Selection:** Fetch a video URL and choose your exact preferred resolution and file size.
+* **Self-Hosted Web GUI:** Access the downloader from any device on your network via a browser.
+* **Format Selection:** Fetch a video URL and choose your exact preferred resolution and format.
+* **Background Processing:** The server downloads the video asynchronously without blocking the UI, providing real-time status polling.
 * **Modern UI:** Clean, responsive interface with a built-in toggle for Dark Mode / Light Mode.
-* **Real-Time Tracking:** Live progress bar showing download speed, file size, and estimated time remaining.
-* **Mac-Friendly:** Built-in patch to automatically bypass common macOS Python SSL certificate errors.
+* **Automated Cleanup:** Automatically purges temporary video files from the server after they are downloaded to your device, and includes a 24-hour fallback cleanup scheduler to conserve disk space.
+* **CI/CD Ready:** Includes a GitHub Actions workflow to automatically deploy to a self-hosted runner.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Docker)
+
+The easiest way to run the application is using Docker and Docker Compose.
+
+### 1. Build and Run
+Open your terminal in the project directory and run:
+
+```bash
+docker-compose up --build -d
+```
+
+### 2. Access the App
+Open your web browser and navigate to:
+```
+http://localhost:8000
+```
+
+---
+
+## 🛠 Manual Installation (Without Docker)
+
+If you prefer to run it directly on your machine:
 
 ### 1. Install Dependencies
-Open your terminal or command prompt and install the required Python libraries:
+Make sure you have Python 3.11+ and `ffmpeg` installed on your system.
 
 ```bash
-pip install yt-dlp sv-ttk imageio-ffmpeg
+pip install -r requirements.txt
 ```
 
-### 2. Run the App
-Navigate to the folder containing the script and run:
-
+### 2. Run the Server
 ```bash
-python local_cli.py
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-### 🛠️ Note for Developers
-macOS SSL Errors: If you modify the code and encounter [SSL: CERTIFICATE_VERIFY_FAILED] errors on a Mac, ensure the ssl._create_unverified_context lines remain at the top of local_cli.py to bypass local certificate restrictions.
+---
 
-Executable Packaging: Some files in this repository are reserved for future deployment (packaging the app into a standalone .exe or .app for servers). You only need local_cli.py to run the GUI.
+## 🔄 Deployment (GitHub Actions)
 
-### 📄 License
-This project is licensed under the MIT License.
+This repository is configured with a continuous deployment workflow. 
+When you push code to the `main` branch, the `.github/workflows/deploy.yml` action will trigger.
+Ensure your target server is configured as a `self-hosted` runner in your GitHub repository settings to automatically pull and deploy the latest Docker containers.
