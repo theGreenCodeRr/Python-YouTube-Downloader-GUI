@@ -1,4 +1,4 @@
-# 🎥 Self-Hosted YouTube Downloader Web App v2
+# 🎥 Self-Hosted YouTube Downloader
 
 A modern, fast, and robust self-hosted web application for downloading YouTube videos, built with **Python (FastAPI)**, **yt-dlp**, and a clean HTML/CSS/JS frontend.
 
@@ -15,7 +15,7 @@ You can test the functionality of this application before installing it yourself
 
 ---
 
-## ✨ Features (v2)
+## ✨ Features
 
 * **Modern UI with Thumbnails:** A beautiful, responsive interface featuring Dark Mode support, video thumbnails, and a clean side-by-side layout.
 * **Download History:** A built-in "Recent Downloads" panel keeps track of your ongoing and past downloads directly in the browser.
