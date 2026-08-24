@@ -31,7 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-TEMP_STORAGE_DIR = "./temp_storage"
+TEMP_STORAGE_DIR = "/var/www/ytdown"
 os.makedirs(TEMP_STORAGE_DIR, exist_ok=True)
 
 # We will store active downloads here for tracking
