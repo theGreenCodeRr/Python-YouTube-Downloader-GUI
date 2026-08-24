@@ -4,13 +4,14 @@ import asyncio
 import uuid
 import subprocess
 import ssl
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Header
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import yt_dlp
+import re
 
 # MacOS SSL certificate bypass
 try:
@@ -35,11 +36,12 @@ TEMP_STORAGE_DIR = "/var/www/ytdown"
 os.makedirs(TEMP_STORAGE_DIR, exist_ok=True)
 
 # We will store active downloads here for tracking
-# { task_id: {"status": "processing" | "completed" | "failed", "filepath": str, "error": str} }
+# { task_id: {"status": "processing" | "completed" | "failed", "filepath": str, "error": str, "progress": str} }
 downloads = {}
 
-# Keep track of recent downloads for the UI (capped at 50)
-recent_downloads = []
+# Keep track of recent downloads for the UI (mapped by client_id)
+# { client_id: [ { task_id, title, thumbnail, format, status, timestamp }, ... ] }
+recent_downloads = {}
 
 templates = Jinja2Templates(directory="templates")
 
@@ -61,19 +63,28 @@ def format_bytes(b):
     elif b < 1024**3: return f"{b/1024**2:.1f} MiB"
     else: return f"{b/1024**3:.1f} GiB"
 
-def download_video_sync(task_id: str, url: str, format_id: str, output_path: str):
+def download_video_sync(task_id: str, url: str, format_id: str, output_path: str, client_id: str = None):
     """
     Synchronous download function meant to be run in a separate thread.
     """
     is_audio_only = format_id.startswith('audio-')
     
+    def progress_hook(d):
+        if d['status'] == 'downloading':
+            percent_str = d.get('_percent_str', '0%').strip()
+            # Strip ANSI escape codes just in case
+            percent_str = re.sub(r'\x1b\[[0-9;]*m', '', percent_str)
+            downloads[task_id]["progress"] = percent_str
+    
     ydl_opts = {
         'merge_output_format': 'mp4',
         'outtmpl': output_path,
         'quiet': True,
+        'nocolor': True,
         'no_playlist': True,
         'nocheckcertificate': True,
         'no-check-certificate': True,
+        'progress_hooks': [progress_hook],
     }
     
     if is_audio_only:
@@ -107,25 +118,28 @@ def download_video_sync(task_id: str, url: str, format_id: str, output_path: str
             downloads[task_id]["status"] = "completed"
             
             # Update history status
-            for idx, item in enumerate(recent_downloads):
-                if item["task_id"] == task_id:
-                    recent_downloads[idx]["status"] = "completed"
-                    break
+            if client_id and client_id in recent_downloads:
+                for idx, item in enumerate(recent_downloads[client_id]):
+                    if item["task_id"] == task_id:
+                        recent_downloads[client_id][idx]["status"] = "completed"
+                        break
         else:
             downloads[task_id]["status"] = "failed"
             downloads[task_id]["error"] = "Output file not found after download."
-            for idx, item in enumerate(recent_downloads):
-                if item["task_id"] == task_id:
-                    recent_downloads[idx]["status"] = "failed"
-                    break
+            if client_id and client_id in recent_downloads:
+                for idx, item in enumerate(recent_downloads[client_id]):
+                    if item["task_id"] == task_id:
+                        recent_downloads[client_id][idx]["status"] = "failed"
+                        break
 
     except Exception as e:
         downloads[task_id]["status"] = "failed"
         downloads[task_id]["error"] = str(e)
-        for idx, item in enumerate(recent_downloads):
-            if item["task_id"] == task_id:
-                recent_downloads[idx]["status"] = "failed"
-                break
+        if client_id and client_id in recent_downloads:
+            for idx, item in enumerate(recent_downloads[client_id]):
+                if item["task_id"] == task_id:
+                    recent_downloads[client_id][idx]["status"] = "failed"
+                    break
 
 
 # Background task to clean up old files periodically
@@ -214,18 +228,22 @@ async def fetch_formats(req: URLRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/process")
-async def process_video(req: ProcessRequest, background_tasks: BackgroundTasks):
+async def process_video(req: ProcessRequest, background_tasks: BackgroundTasks, x_client_id: str = Header(default="anonymous")):
     task_id = str(uuid.uuid4())
     output_path = os.path.join(TEMP_STORAGE_DIR, f"{task_id}.mp4")
     
     downloads[task_id] = {
         "status": "processing",
         "filepath": output_path,
-        "error": None
+        "error": None,
+        "progress": "0%"
     }
     
+    if x_client_id not in recent_downloads:
+        recent_downloads[x_client_id] = []
+        
     # Save to history
-    recent_downloads.insert(0, {
+    recent_downloads[x_client_id].insert(0, {
         "task_id": task_id,
         "title": req.title,
         "thumbnail": req.thumbnail,
@@ -233,18 +251,18 @@ async def process_video(req: ProcessRequest, background_tasks: BackgroundTasks):
         "status": "processing",
         "timestamp": time.time()
     })
-    # Cap history at 50
-    if len(recent_downloads) > 50:
-        recent_downloads.pop()
+    # Cap history at 50 per client
+    if len(recent_downloads[x_client_id]) > 50:
+        recent_downloads[x_client_id].pop()
     
     # Spawn background task
-    background_tasks.add_task(download_video_sync, task_id, req.url, req.format_id, output_path)
+    background_tasks.add_task(download_video_sync, task_id, req.url, req.format_id, output_path, x_client_id)
     
     return {"task_id": task_id}
 
 @app.get("/api/recent")
-async def get_recent():
-    return {"recent": recent_downloads}
+async def get_recent(x_client_id: str = Header(default="anonymous")):
+    return {"recent": recent_downloads.get(x_client_id, [])}
 
 @app.get("/api/status/{task_id}")
 async def get_status(task_id: str):
@@ -254,7 +272,8 @@ async def get_status(task_id: str):
     return {
         "task_id": task_id,
         "status": downloads[task_id]["status"],
-        "error": downloads[task_id]["error"]
+        "error": downloads[task_id]["error"],
+        "progress": downloads[task_id].get("progress", "0%")
     }
 
 def delete_file_after_response(filepath: str, task_id: str):
